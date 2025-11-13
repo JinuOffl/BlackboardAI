@@ -1,0 +1,30 @@
+name: blackboard_ai
+description: BlackboardAI - AI-powered Manim animation generator
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # HTTP client
+  http: ^1.1.0
+  # State management
+  provider: ^6.1.1
+  # Video player
+  video_player: ^2.8.1
+  # JSON parsing
+  json_annotation: ^4.8.1
+  # UI
+  flutter_markdown: ^0.6.18
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
