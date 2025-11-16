@@ -16,6 +16,50 @@ class AnimationPlayer extends StatefulWidget {
 }
 
 class _AnimationPlayerState extends State<AnimationPlayer> {
+  late html.VideoElement _videoElement;
+
+  @override
+  void initState() {
+    super.initState();
+    print('[PLAYER] AnimationPlayer initState called');
+    _initializeVideo();
+  }
+
+  void _initializeVideo() {
+    print('[PLAYER] Initializing video element');
+    
+    _videoElement = html.document.querySelector('video') as html.VideoElement?
+        ?? html.VideoElement();
+    
+    _videoElement.controls = true;
+    _videoElement.autoplay = false;
+    _videoElement.style.width = '100%';
+    _videoElement.style.height = '100%';
+    _videoElement.style.objectFit = 'contain';
+    _videoElement.style.backgroundColor = '#000000';
+    
+    print('[PLAYER] ✓ Video element initialized');
+  }
+
+  @override
+  void didUpdateWidget(AnimationPlayer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    
+    if (widget.videoUrl != null && widget.videoUrl != oldWidget.videoUrl) {
+      print('[PLAYER] Video URL updated: ${widget.videoUrl}');
+      _updateVideoSource(widget.videoUrl!);
+    }
+  }
+
+  void _updateVideoSource(String url) {
+    print('[PLAYER] Setting video source: $url');
+    
+    _videoElement.src = url;
+    _videoElement.load();
+    
+    print('[PLAYER] ✓ Video source loaded');
+  }
+
   @override
   Widget build(BuildContext context) {
     print('[PLAYER] Building with videoUrl: ${widget.videoUrl}');
@@ -29,11 +73,16 @@ class _AnimationPlayerState extends State<AnimationPlayer> {
   }
 
   Widget _buildContent() {
+    // LOADING STATE
     if (widget.isLoading) {
+      print('[PLAYER] Showing loading state');
       return Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+          const CircularProgressIndicator(
+            color: Colors.white,
+            strokeWidth: 3,
+          ),
           const SizedBox(height: 16),
           Text(
             'Generating animation...',
@@ -48,11 +97,13 @@ class _AnimationPlayerState extends State<AnimationPlayer> {
       );
     }
 
+    // VIDEO PLAYING STATE
     if (widget.videoUrl != null) {
-      print('[PLAYER] Rendering video from: ${widget.videoUrl}');
+      print('[PLAYER] Showing video player');
       
       return Column(
         children: [
+          // Video player - use HtmlElementView
           Expanded(
             child: Container(
               decoration: BoxDecoration(
@@ -61,16 +112,14 @@ class _AnimationPlayerState extends State<AnimationPlayer> {
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(6),
-                child: HtmlElementView(
-                  viewType: 'html5-video-${DateTime.now().millisecondsSinceEpoch}',
-                  onPlatformViewCreated: (int id) {
-                    print('[PLAYER] Platform view created with ID: $id');
-                    _createVideoElement(widget.videoUrl!);
-                  },
+                child: const HtmlElementView(
+                  viewType: 'html5-video-player',
                 ),
               ),
             ),
           ),
+          
+          // Success message
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -78,7 +127,7 @@ class _AnimationPlayerState extends State<AnimationPlayer> {
               Icon(Icons.check_circle, color: Colors.green[300], size: 20),
               const SizedBox(width: 8),
               Text(
-                'Click to play ▶️',
+                'Animation ready! Press ▶️ to play',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 14,
@@ -91,10 +140,16 @@ class _AnimationPlayerState extends State<AnimationPlayer> {
       );
     }
 
+    // EMPTY STATE
+    print('[PLAYER] Showing empty state');
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(Icons.play_circle_outline, size: 100, color: Colors.white24),
+        Icon(
+          Icons.play_circle_outline,
+          size: 100,
+          color: Colors.white24,
+        ),
         const SizedBox(height: 16),
         Text(
           'Enter a prompt below to generate an animation',
@@ -105,25 +160,10 @@ class _AnimationPlayerState extends State<AnimationPlayer> {
     );
   }
 
-  void _createVideoElement(String videoUrl) {
-    print('[PLAYER] Creating HTML5 video element');
-    print('[PLAYER] Video URL: $videoUrl');
-    
-    final videoElement = html.VideoElement()
-      ..src = videoUrl
-      ..controls = true
-      ..autoplay = false
-      ..style.width = '100%'
-      ..style.height = '100%'
-      ..style.objectFit = 'contain'
-      ..style.backgroundColor = '#000000';
-
-    print('[PLAYER] Video element created and configured');
-
-    // Register view factory
-    html.window.console.log('Registering video view factory');
-    
-    // This registers a simple HTML video element
-    // The actual rendering happens through HtmlElementView
+  @override
+  void dispose() {
+    print('[PLAYER] Disposing AnimationPlayer');
+    _videoElement.pause();
+    super.dispose();
   }
 }

@@ -16,7 +16,6 @@ print("=" * 80)
 
 app = FastAPI(title="BlackboardAI API", version="1.0.0")
 
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],         # <--- universal access on dev
@@ -122,13 +121,14 @@ async def generate_animation(request: PromptRequest):
 
 @app.get("/video/{filename}")
 async def get_video(filename: str):
-    """Serve rendered video files with CORS headers"""
-    print(f"[MAIN] Video requested: {filename}")
+    """Serve rendered video files with proper headers"""
+    print(f"[MAIN] ✓ Video request received: {filename}")
     
-    # Search for video file
     video_dir = Path(Config.MANIM_OUTPUT_DIR)
+    
+    # Search recursively for the video file
     for video_path in video_dir.rglob(filename):
-        print(f"[MAIN] Serving video: {video_path}")
+        print(f"[MAIN] ✓ Found and serving video: {video_path}")
         
         return FileResponse(
             video_path,
@@ -137,11 +137,12 @@ async def get_video(filename: str):
             headers={
                 "Access-Control-Allow-Origin": "*",
                 "Cache-Control": "public, max-age=3600",
+                "Accept-Ranges": "bytes",
             }
         )
     
     print(f"[MAIN] ❌ Video not found: {filename}")
-    raise HTTPException(status_code=404, detail="Video not found")
+    raise HTTPException(status_code=404, detail=f"Video '{filename}' not found")
 
 if __name__ == "__main__":
     print(f"\\n[MAIN] Starting server on port {Config.BACKEND_PORT}...")
