@@ -6,24 +6,33 @@ import 'dart:ui_web' as ui_web if (dart.library.html) 'dart:ui_web.dart';
 import 'screens/home_screen.dart';
 import 'services/api_service.dart';
 
+//Global video element
+late html.VideoElement globalVideoElement;
+
 void main() {
   print('[MAIN] Starting BlackboardAI Flutter App');
   
-  // CRITICAL: Register HTML5 video player BEFORE running app
+// Create global video element ONCE
+  print('[MAIN] Creating global video element');
+  globalVideoElement = html.VideoElement();
+  globalVideoElement.controls = true;
+  globalVideoElement.autoplay = false;
+  globalVideoElement.style.width = '100%';
+  globalVideoElement.style.height = '100%';
+  globalVideoElement.style.objectFit = 'contain';
+  globalVideoElement.style.backgroundColor = '#000000';
+  
+  print('[MAIN] ✓ Global video element created');
+  
+  // Register platform view factory with the global element
   print('[MAIN] Registering HTML5 video platform view factory');
   
-
-    ui_web.platformViewRegistry.registerViewFactory(
+  ui_web.platformViewRegistry.registerViewFactory(
     'html5-video-player',
     (int viewId) {
-      final video = html.VideoElement();
-      video.controls = true;
-      video.autoplay = false;
-      video.style.width = '100%';
-      video.style.height = '100%';
-      video.style.objectFit = 'contain';
-      video.style.backgroundColor = '#000000';
-      return video;
+      print('[MAIN] Platform view factory called (viewId: $viewId)');
+      print('[MAIN] Returning global video element');
+      return globalVideoElement;
     },
   );
   
