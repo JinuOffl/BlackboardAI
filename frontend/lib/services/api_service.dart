@@ -39,7 +39,7 @@ class ApiService {
         
         print('[API] Status: ${result.status}');
         print('[API] Message: ${result.message}');
-        print('[API] Video URL: ${result.videoUrl}');
+        print('[API] Video URL from backend: ${result.videoUrl}');
         print('[API] Attempts: ${result.attempts}');
         
         return result;
@@ -53,17 +53,16 @@ class ApiService {
     }
   }
 
+  /// Build complete video URL
   String getVideoUrl(String videoPath) {
     String fullUrl;
     
+    // Video path from backend already includes timestamp
     if (videoPath.startsWith('http')) {
-      // Already a full URL
       fullUrl = videoPath;
     } else if (videoPath.startsWith('/')) {
-      // Add base URL to path
       fullUrl = '$baseUrl$videoPath';
     } else {
-      // Assume it's a filename, construct full path
       fullUrl = '$baseUrl/video/$videoPath';
     }
     

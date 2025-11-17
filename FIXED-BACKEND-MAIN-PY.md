@@ -1,3 +1,8 @@
+# FIXED backend/main.py - With Unique Video Paths
+
+Replace your entire `backend/main.py` with this:
+
+```python
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -175,3 +180,196 @@ if __name__ == "__main__":
         port=Config.BACKEND_PORT,
         log_level=Config.LOG_LEVEL.lower()
     )
+```
+
+---
+
+# UPDATED lib/services/api_service.dart
+
+Replace your entire `lib/services/api_service.dart` with this:
+
+```dart
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+
+class ApiService {
+  // Change this to your backend URL
+  final String baseUrl = 'http://localhost:8000';
+  
+  ApiService() {
+    print('[API] ApiService initialized with baseUrl: $baseUrl');
+  }
+
+  /// Generate animation from user prompt
+  Future<AnimationResponse> generateAnimation(String prompt) async {
+    print('[API] Sending generate request...');
+    print('[API] Prompt: "$prompt"');
+    
+    final url = Uri.parse('$baseUrl/generate');
+    print('[API] URL: $url');
+    
+    try {
+      print('[API] Making POST request...');
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'prompt': prompt,
+        }),
+      );
+      
+      print('[API] Response status: ${response.statusCode}');
+      print('[API] Response body length: ${response.body.length} chars');
+      
+      if (response.statusCode == 200) {
+        print('[API] ✓ Success! Parsing response...');
+        final data = jsonDecode(response.body);
+        final result = AnimationResponse.fromJson(data);
+        
+        print('[API] Status: ${result.status}');
+        print('[API] Message: ${result.message}');
+        print('[API] Video URL from backend: ${result.videoUrl}');
+        print('[API] Attempts: ${result.attempts}');
+        
+        return result;
+      } else {
+        print('[API] ❌ Error response: ${response.body}');
+        throw Exception('Failed to generate animation: ${response.body}');
+      }
+    } catch (e) {
+      print('[API] ❌ Exception: $e');
+      rethrow;
+    }
+  }
+
+  /// Build complete video URL
+  String getVideoUrl(String videoPath) {
+    String fullUrl;
+    
+    // Video path from backend already includes timestamp
+    if (videoPath.startsWith('http')) {
+      fullUrl = videoPath;
+    } else if (videoPath.startsWith('/')) {
+      fullUrl = '$baseUrl$videoPath';
+    } else {
+      fullUrl = '$baseUrl/video/$videoPath';
+    }
+    
+    print('[API] Full video URL: $fullUrl');
+    return fullUrl;
+  }
+}
+
+/// Animation response model
+class AnimationResponse {
+  final String status;
+  final String message;
+  final String? code;
+  final String? videoUrl;
+  final int attempts;
+
+  AnimationResponse({
+    required this.status,
+    required this.message,
+    this.code,
+    this.videoUrl,
+    required this.attempts,
+  });
+
+  factory AnimationResponse.fromJson(Map<String, dynamic> json) {
+    print('[API] Parsing AnimationResponse from JSON');
+    return AnimationResponse(
+      status: json['status'] as String,
+      message: json['message'] as String,
+      code: json['code'] as String?,
+      videoUrl: json['video_url'] as String?,
+      attempts: json['attempts'] as int,
+    );
+  }
+}
+```
+
+---
+
+# Key Changes Made
+
+## Backend (main.py):
+
+✅ **Import time module**: `import time` for timestamps
+
+✅ **Unique URL generation**:
+```python
+video_rel_path = Path(video_path).relative_to(Config.MANIM_OUTPUT_DIR)
+timestamp = int(time.time() * 1000)
+video_url = f"/video/{video_rel_path.as_posix()}?t={timestamp}"
+```
+Returns: `/video/tmpxb108cvq/480p15/ConceptAnimation.mp4?t=1731776157123`
+
+✅ **Updated video endpoint**:
+```python
+@app.get("/video/{file_path:path}")  # Now accepts subdirectories
+```
+
+✅ **Stronger cache-busting headers**:
+```python
+"Cache-Control": "no-cache, no-store, must-revalidate",
+"Pragma": "no-cache",
+"Expires": "0",
+```
+
+## Frontend (api_service.dart):
+
+✅ **Simpler getVideoUrl**: No need to add timestamp (backend already does it)
+
+✅ **Proper logging** of video URLs from backend
+
+---
+
+# 🚀 How It Works Now
+
+1. **Backend generates animation**
+2. **Backend returns unique URL**:
+   - Old: `/video/ConceptAnimation.mp4`
+   - New: `/video/tmpxb108cvq/480p15/ConceptAnimation.mp4?t=1731776157123`
+3. **Each video has unique path + timestamp**
+4. **Browser can't cache** (timestamp changes each time)
+5. **Each prompt shows correct animation** ✅
+
+---
+
+# ✅ Test Steps
+
+1. Restart backend:
+   ```bash
+   python main.py
+   ```
+
+2. Restart frontend:
+   ```bash
+   flutter run -d chrome --web-port 8080
+   ```
+
+3. Generate first animation: **"Explain Newton's law"**
+   → Should play Newton animation
+
+4. Generate second animation: **"Type 'I love Rukmini'"**
+   → Should play NEW animation (not cached Newton)
+
+5. Generate more animations
+   → Each should show correct video ✅
+
+---
+
+## Backend Log Example (After Fix)
+
+```
+[MAIN] ✓✓✓ SUCCESS! Animation generated
+[MAIN] Video: media\videos\tmpxb108cvq\480p15\ConceptAnimation.mp4
+[MAIN] ✓ Generated unique video URL: /video/tmpxb108cvq/480p15/ConceptAnimation.mp4?t=1731776157123
+```
+
+---
+
+**Now each animation will display correctly without caching issues!** 🎉
